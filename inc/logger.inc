@@ -1,115 +1,201 @@
 <?php
+// Based on https://refactoring.guru/design-patterns/singleton/php/example#example-1
 // Copyright (c) 2021 PeterL73
 // Distributed under the MIT software license, see the accompanying
 // file LICENSE or https://choosealicense.com/licenses/mit/
 
-define('LOGGER_CL_N', "\x1B[0m");
-define('LOGGER_CL_RED', "\x1B[31m");
-define('LOGGER_CL_GRN', "\x1B[32m");
-define('LOGGER_CL_YLW', "\x1B[33m");
-define('LOGGER_CL_BLU', "\x1B[34m");
-define('LOGGER_CL_MAG', "\x1B[35m");
-define('LOGGER_CL_CYN', "\x1B[36m");
+require_once('singleton.inc');
 
-define('LOGGER_CL_GRY', "\x1B[90m");    /* dark gray selectable in putty */
+class LoggerLevel 
+{
+  const ERROR='ERROR';
+  const WARNING='WARNING';
+  const NOTICE='NOTICE';
+  const INFO='INFO';
+  const DEBUG='DEBUG';
 
-define('LOGGER_ERROR',   ['prio' => 1, 'label' => 'ERROR',   'color' => LOGGER_CL_RED]);
-define('LOGGER_WARNING', ['prio' => 2, 'label' => 'WARNING', 'color' => LOGGER_CL_YLW]);
-define('LOGGER_NOTICE',  ['prio' => 3, 'label' => 'NOTICE',  'color' => LOGGER_CL_CYN]);
-define('LOGGER_INFO',    ['prio' => 4, 'label' => 'INFO',    'color' => ""]);
-define('LOGGER_DEBUG',   ['prio' => 5, 'label' => 'DEBUG',   'color' => LOGGER_CL_GRY]);
+  private function __construct()
+  {
+  }
+}
 
+/**
+ * The logging class is the most known and praised use of the Singleton pattern.
+ * In most cases, you need a single logging object that writes to a single log
+ * file (control over shared resource). You also need a convenient way to access
+ * that instance from any context of your app (global access point).
+ */
+class Logger extends Singleton
+{
+  private const COLOR = [
+    'DEFAULT' => "\x1B[0m",
+    'RED' => "\x1B[31m",
+    'GREEN' => "\x1B[32m",
+    'YELLOW' => "\x1B[33m",
+    'BLUE' => "\x1B[34m",
+    'MAGENTA' => "\x1B[35m",
+    'CYAN' => "\x1B[36m",
+    'GREY' => "\x1B[90m"   /* dark gray selectable in putty */
+  ];
+
+  private const LEVEL = [
+    LoggerLevel::ERROR => ['prio' => 1, 'label' => 'ERROR',   'color' => self::COLOR['RED']],
+    LoggerLevel::WARNING => ['prio' => 2, 'label' => 'WARNING', 'color' => self::COLOR['YELLOW']],
+    LoggerLevel::NOTICE => ['prio' => 3, 'label' => 'NOTICE',  'color' => self::COLOR['CYAN']],
+    LoggerLevel::INFO => ['prio' => 4, 'label' => 'INFO',    'color' => self::COLOR['DEFAULT']],
+    LoggerLevel::DEBUG => ['prio' => 5, 'label' => 'DEBUG',   'color' => self::COLOR['GREY']]
+  ];
+
+  private $level = LoggerLevel::DEBUG;
+  private $label = true;
+
+    /**
+     * A file pointer resource of the log file.
+     */
+    private $fileHandle;
+
+    /**
+     * Since the Singleton's constructor is called only once, just a single file
+     * resource is opened at all times.
+     *
+     * Note, for the sake of simplicity, we open the console stream instead of
+     * the actual file here.
+     */
+    protected function __construct()
+    { 
+        $this->fileHandle = fopen('php://stdout', 'w');
+    }
+
+    /**
+     * Write a log entry to the opened file resource.
+     */
+    public function _writeLog(string $level, string $format, $replacements, $prefix=true): void
+    {
+      if(self::LEVEL[$level]['prio'] > self::LEVEL[$this->level]['prio']) {
+        return;
+      }
+      if($prefix){
+        fwrite($this->fileHandle, gmdate("[Y-m-d H:i:s] "));
+      }
+      else {
+        printf(str_pad('',22));
+      }  
+      fwrite($this->fileHandle, self::LEVEL[$level]['color']);
+      if($prefix && $this->label){
+        fwrite($this->fileHandle, self::LEVEL[$level]['label']. ': ' );
+      }
+
+      if(isset($replacements[0]) && (is_array($replacements[0]) || is_object($replacements[0]))){  //TODO parse als var_export wanneer %v
+        fwrite($this->fileHandle, $format.": ".PHP_EOL);
+        fwrite($this->fileHandle, var_export($replacements[0], true));
+      }
+      else {
+        fwrite($this->fileHandle, vsprintf($format, $replacements));
+      }
+
+      fwrite($this->fileHandle, self::COLOR['DEFAULT']);
+
+      fwrite($this->fileHandle, PHP_EOL );
+    }
+
+    public static function setLevel(string $value){
+      $logger = static::getInstance();
+      $logger->level = $value;
+    }
+    public static function setLabel(bool $value){
+      $logger = static::getInstance();
+      $logger->label = $value;
+    }
+
+    /**
+     * Just a handy shortcut to reduce the amount of code needed to log messages
+     * from the client code.
+     * parameters: level, format, replacements
+     */
+    private static function staticWriteLog(string $level, string $format, array $replacements, bool $prefix=true): void
+    {
+        $logger = static::getInstance();
+        $logger->_writeLog($level, $format, $replacements, $prefix);
+    }
+    public static function errorf(string $format, ...$replacements): void
+    {
+      static::staticWriteLog(LoggerLevel::ERROR, $format, $replacements, true);
+    }
+    public static function errorf2(string $format, ...$replacements): void
+    {
+      static::staticWriteLog(LoggerLevel::ERROR, $format, $replacements, false);
+    }
+    public static function warningf(string $format, ...$replacements): void
+    {
+      static::staticWriteLog(LoggerLevel::WARNING, $format, $replacements, true);
+    }
+    public static function warningf2(string $format, ...$replacements): void
+    {
+      static::staticWriteLog(LoggerLevel::WARNING, $format, $replacements, false);
+    }
+    public static function noticef(string $format, ...$replacements): void
+    {
+      static::staticWriteLog(LoggerLevel::NOTICE, $format, $replacements, true);
+    }
+    public static function noticef2(string $format, ...$replacements): void
+    {
+      static::staticWriteLog(LoggerLevel::NOTICE, $format, $replacements, false);
+    }
+    public static function infof(string $format, ...$replacements): void
+    {
+      static::staticWriteLog(LoggerLevel::INFO, $format, $replacements, true);
+    }
+    public static function infof2(string $format, ...$replacements): void
+    {
+      static::staticWriteLog(LoggerLevel::INFO, $format, $replacements, false);
+    }
+    public static function debugf(string $format, ...$replacements): void
+    {
+      static::staticWriteLog(LoggerLevel::DEBUG, $format, $replacements, true);
+    }
+    public static function debugf2(string $format, ...$replacements): void
+    {
+      static::staticWriteLog(LoggerLevel::DEBUG, $format, $replacements, false);
+    }
+    public static function writef(string $level, string $format, ...$replacements): void
+    {
+      static::staticWriteLog($level, $format, $replacements, true);
+    }
+    public static function writef2(string $level, string $format, ...$replacements): void
+    {
+      static::staticWriteLog($level, $format, $replacements, false);
+    }
+
+}
+
+//old implementation DEPRECATED
+define('LOGGER_ERROR',   'ERROR');
+define('LOGGER_WARNING', 'WARNING');
+define('LOGGER_NOTICE',  'NOTICE');
+define('LOGGER_INFO',    'INFO');
+define('LOGGER_DEBUG',   'DEBUG');
 $logger_level=0;
 $logger_label=true;
 
-//TODO standaard PHP meldingen afvangen (of niet)
-//error_reporting(0);
-//set_error_handler(_logger_error_handler);
-
-//_logger_test();
-
 function logger(){
-  $argv = func_get_args();
-  $level = array_shift( $argv );
-  $format = array_shift( $argv );
-  _logger($level, $format, $argv, true);
+  logger_set();
+  call_user_func_array("Logger::writef", func_get_args());
 }
 function logger2(){
-  $argv = func_get_args();
-  $level = array_shift( $argv );
-  $format = array_shift( $argv );
-  if(strlen($format)==0) {
-    printf( PHP_EOL );
-  }
-  else {
-    _logger($level, $format, $argv, false);
-  }
+  logger_set();
+  call_user_func_array("Logger::writef2", func_get_args());
 }
-function _logger($level, $format, $argv, $prefix){
+function logger_set(){
+  static $first_run=true;
   global $logger_level;
   global $logger_label;
 
-  $test_level=$logger_level;
-  if(isset($logger_level['prio'])){
-    $test_level=$logger_level['prio'];
+  if($logger_level && !is_numeric($logger_level)){
+    Logger::setLevel($logger_level);
   }
-  if($test_level && isset($level['prio']) && $level['prio'] > $test_level){
-    return;
+  Logger::setLabel($logger_label);
+  if($first_run){
+    Logger::warningf('Using DEPRECATED Logger implementation');
+    $first_run=false;
   }
-  if($prefix){
-    printf( gmdate("[Y-m-d H:i:s] "));
-  }
-  else {
-    printf(str_pad('',22));
-  }
-  if(isset($level['color'])){
-    printf($level['color']);
-  }
-  if($prefix && $logger_label){
-    if(isset($level['label'])){
-      printf($level['label']. ': ' );
-    }
-  }
-  _logger_line($format, $argv);
-  if(isset($level['color'])){
-    printf(LOGGER_CL_N);
-  }
-  printf( PHP_EOL );
-}
-function _logger_line($format, $argv){
-  if(isset($argv[0]) && (is_array($argv[0]) || is_object($argv[0]))){  //TODO parse als var_export wanneer %v
-    print($format.": ");
-    printf( PHP_EOL );
-    #print_r($argv[0]);
-    var_export($argv[0]);
-  }
-  else {
-    vprintf( $format, $argv );
-  }
-}
-function _logger_error_handler($errno, $errstr, $errfile, $errline){
-  $errortype = array (
-    E_WARNING            => LOGGER_WARNING,
-    E_NOTICE             => LOGGER_NOTICE,
-    E_USER_ERROR         => LOGGER_ERROR,
-    E_USER_WARNING       => LOGGER_WARNING,
-    E_USER_NOTICE        => LOGGER_WARNING
-  );
-
-  logger($errortype[$errno], '(PHP) '.$errstr.' in '.$errfile.' on line '.$errline);
-}
-
-function _logger_test(){
-  global $logger_level;
-  $test_object=new mysqli;
-  logger(LOGGER_ERROR,'Dit is een error');
-  logger(LOGGER_ERROR,'Dit is een error met variabele logger_level: %d', $logger_level);
-  logger(LOGGER_ERROR,'Dit is een error met array', LOGGER_INFO);
-  logger(LOGGER_ERROR,'Dit is een error met object', $test_object);
-
-  logger(LOGGER_WARNING,'Dit is een warning');
-  logger(LOGGER_NOTICE,'Dit is een notice');
-  logger2(LOGGER_NOTICE,'Dit is een notice');
-  logger(LOGGER_INFO,'Dit is een info');
-  logger(LOGGER_DEBUG,'Dit is een debug %r',$test_object);
 }
