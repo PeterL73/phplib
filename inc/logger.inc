@@ -42,7 +42,7 @@ class Logger extends Singleton
     'DEBUG' => ['prio' => 5, 'label' => 'DEBUG',   'color' => self::COLOR['GREY']]
   ];
 
-  private $level;
+  private $level='DEBUG';
   private $label;
   private $toscreen;
   private $tofile;
@@ -64,7 +64,6 @@ class Logger extends Singleton
      */
     protected function __construct()
     { 
-      $this->level = Config::get('level', 'DEBUG', 'logger');
       $this->label = Config::get('label', false, 'logger');
       $this->tofile = Config::get('tofile', false, 'logger');
       if($this->tofile){
@@ -81,6 +80,7 @@ class Logger extends Singleton
       if($this->toscreen){
         $this->screenHandle = fopen('php://stdout', 'a');
       }
+      $this->_setLevel(Config::get('level', 'DEBUG', 'logger'));
     }
 
     public function write($string){
@@ -127,13 +127,19 @@ class Logger extends Singleton
       $this->write( PHP_EOL );
     }
 
-    public static function setLevel(string $value){
-      $logger = static::getInstance();
-      if(!isset($logger::LEVEL[$value]['prio'])){
-        $logger->_writeLog('ERROR', 'Invalid level [%s] set', $value);
+    public function _setLevel(string $value)
+    {
+      $value=strtoupper($value);
+      if(!isset($this::LEVEL[$value]['prio'])){
+        $this->_writeLog('ERROR', 'Invalid level [%s] set', $value);
         return;
       }
-      $logger->level = $value;
+      $this->level = $value;
+    }
+
+    public static function setLevel(string $value){
+      $logger = static::getInstance();
+      $logger->_setLevel($value);
     }
     public static function setLabel(bool $value){
       $logger = static::getInstance();
