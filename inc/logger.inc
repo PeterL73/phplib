@@ -5,7 +5,16 @@
 // file LICENSE or https://choosealicense.com/licenses/mit/
 
 require_once('singleton.inc');
+require_once('config.inc');
 
+/* config options
+ * [logger]
+ * level   = DEBUG
+ * label   = false
+ * toscreen= true (false when not set and tofile set)
+ * tofile  = false
+ * filename= <scriptname>.log
+ */
 /**
  * The logging class is the most known and praised use of the Singleton pattern.
  * In most cases, you need a single logging object that writes to a single log
@@ -33,13 +42,18 @@ class Logger extends Singleton
     'DEBUG' => ['prio' => 5, 'label' => 'DEBUG',   'color' => self::COLOR['GREY']]
   ];
 
-  private $level = 'DEBUG';
-  private $label = true;
+  private $level;
+  private $label;
+  private $toscreen;
+  private $tofile;
+  private $filename;
 
     /**
      * A file pointer resource of the log file.
      */
-    private $fileHandle;
+     private $fileHandle = null;
+     private $screenHandle = null;
+
 
     /**
      * Since the Singleton's constructor is called only once, just a single file
@@ -50,9 +64,33 @@ class Logger extends Singleton
      */
     protected function __construct()
     { 
-        $this->fileHandle = fopen('php://stdout', 'w');
+      $this->level = Config::get('level', 'DEBUG', 'logger');
+      $this->label = Config::get('label', false, 'logger');
+      $this->tofile = Config::get('tofile', false, 'logger');
+      if($this->tofile){
+        Config::softSet('toscreen', false, 'logger');
+        $script=pathinfo(get_included_files()[0]);
+        $filename=$script['filename'].'.log';
+        Config::softSet('filename', $script['dirname'].'/'.$filename, 'logger');
+      }
+      $this->toscreen = Config::get('toscreen', true, 'logger');
+      $this->filename = Config::get('filename', null, 'logger');
+      if($this->tofile){
+        $this->fileHandle = fopen($this->filename, 'a');
+      }
+      if($this->toscreen){
+        $this->screenHandle = fopen('php://stdout', 'a');
+      }
     }
 
+    public function write($string){
+      if($this->screenHandle){
+        fwrite($this->screenHandle, $string);
+      }
+      if($this->fileHandle){
+        fwrite($this->fileHandle, $string);
+      }
+    }
     /**
      * Write a log entry to the opened file resource.
      */
@@ -66,27 +104,27 @@ class Logger extends Singleton
         return;
       }
       if($prefix){
-        fwrite($this->fileHandle, gmdate("[Y-m-d H:i:s] "));
+        $this->write(gmdate("[Y-m-d H:i:s] "));
       }
       else {
-        printf(str_pad('',22));
+        $this->write(str_pad('',22));
       }  
-      fwrite($this->fileHandle, self::LEVEL[$level]['color']);
+      $this->write(self::LEVEL[$level]['color']);
       if($prefix && $this->label){
-        fwrite($this->fileHandle, self::LEVEL[$level]['label']. ': ' );
+        $this->write(self::LEVEL[$level]['label']. ': ' );
       }
 
       if(isset($replacements[0]) && (is_array($replacements[0]) || is_object($replacements[0]))){  //TODO parse als var_export wanneer %v
-        fwrite($this->fileHandle, $format.": ".PHP_EOL);
-        fwrite($this->fileHandle, var_export($replacements[0], true));
+        $this->write($format.": ".PHP_EOL);
+        $this->write(var_export($replacements[0], true));
       }
       else {
-        fwrite($this->fileHandle, vsprintf($format, $replacements));
+        $this->write(vsprintf($format, $replacements));
       }
 
-      fwrite($this->fileHandle, self::COLOR['DEFAULT']);
+      $this->write(self::COLOR['DEFAULT']);
 
-      fwrite($this->fileHandle, PHP_EOL );
+      $this->write( PHP_EOL );
     }
 
     public static function setLevel(string $value){
