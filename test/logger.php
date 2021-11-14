@@ -7,17 +7,19 @@ require_once('../inc/logger.inc');
 
 
 // test nieuw
-//Logger::setLevel(LoggerLevel::NOTICE);
+//Logger::setLevel('NOTICE');
 
 Logger::errorf('Logger::error');
 Logger::warningf('Logger::warning');
 Logger::noticef('Logger::notice');
 Logger::infof('Logger::info');
 Logger::debugf('Logger::debug');
-Logger::writef(LoggerLevel::ERROR, 'Error regel 1');
-Logger::writef2(LoggerLevel::ERROR, 'Error regel 2');
-Logger::writef(LoggerLevel::WARNING, 'Warning');
-Logger::writef(LoggerLevel::NOTICE, 'object',LoggerLevel::ERROR);
+Logger::writef('ERROR', 'Error regel 1');
+Logger::writef2('ERROR', 'Error regel 2');
+Logger::writef('WARNING', 'Warning');
+Logger::writef('NOTICE', 'object','ERROR');
+Logger::writef('LEVEL', 'invalida logger level');
+Logger::setLevel('INVALID');
 
 // test oud
 logger('ERROR', 'oud Error regel %d', 1);

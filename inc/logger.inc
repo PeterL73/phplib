@@ -6,19 +6,6 @@
 
 require_once('singleton.inc');
 
-class LoggerLevel 
-{
-  const ERROR='ERROR';
-  const WARNING='WARNING';
-  const NOTICE='NOTICE';
-  const INFO='INFO';
-  const DEBUG='DEBUG';
-
-  private function __construct()
-  {
-  }
-}
-
 /**
  * The logging class is the most known and praised use of the Singleton pattern.
  * In most cases, you need a single logging object that writes to a single log
@@ -39,14 +26,14 @@ class Logger extends Singleton
   ];
 
   private const LEVEL = [
-    LoggerLevel::ERROR => ['prio' => 1, 'label' => 'ERROR',   'color' => self::COLOR['RED']],
-    LoggerLevel::WARNING => ['prio' => 2, 'label' => 'WARNING', 'color' => self::COLOR['YELLOW']],
-    LoggerLevel::NOTICE => ['prio' => 3, 'label' => 'NOTICE',  'color' => self::COLOR['CYAN']],
-    LoggerLevel::INFO => ['prio' => 4, 'label' => 'INFO',    'color' => self::COLOR['DEFAULT']],
-    LoggerLevel::DEBUG => ['prio' => 5, 'label' => 'DEBUG',   'color' => self::COLOR['GREY']]
+    'ERROR' => ['prio' => 1, 'label' => 'ERROR',   'color' => self::COLOR['RED']],
+    'WARNING' => ['prio' => 2, 'label' => 'WARNING', 'color' => self::COLOR['YELLOW']],
+    'NOTICE' => ['prio' => 3, 'label' => 'NOTICE',  'color' => self::COLOR['CYAN']],
+    'INFO' => ['prio' => 4, 'label' => 'INFO',    'color' => self::COLOR['DEFAULT']],
+    'DEBUG' => ['prio' => 5, 'label' => 'DEBUG',   'color' => self::COLOR['GREY']]
   ];
 
-  private $level = LoggerLevel::DEBUG;
+  private $level = 'DEBUG';
   private $label = true;
 
     /**
@@ -71,6 +58,10 @@ class Logger extends Singleton
      */
     public function _writeLog(string $level, string $format, $replacements, $prefix=true): void
     {
+      if(!isset(self::LEVEL[$level]['prio'])){
+        $this->_writeLog('ERROR', 'Invalid level [%s]', $level);
+        return;
+      }
       if(self::LEVEL[$level]['prio'] > self::LEVEL[$this->level]['prio']) {
         return;
       }
@@ -100,6 +91,10 @@ class Logger extends Singleton
 
     public static function setLevel(string $value){
       $logger = static::getInstance();
+      if(!isset($logger::LEVEL[$value]['prio'])){
+        $logger->_writeLog('ERROR', 'Invalid level [%s] set', $value);
+        return;
+      }
       $logger->level = $value;
     }
     public static function setLabel(bool $value){
@@ -119,43 +114,43 @@ class Logger extends Singleton
     }
     public static function errorf(string $format, ...$replacements): void
     {
-      static::staticWriteLog(LoggerLevel::ERROR, $format, $replacements, true);
+      static::staticWriteLog('ERROR', $format, $replacements, true);
     }
     public static function errorf2(string $format, ...$replacements): void
     {
-      static::staticWriteLog(LoggerLevel::ERROR, $format, $replacements, false);
+      static::staticWriteLog('ERROR', $format, $replacements, false);
     }
     public static function warningf(string $format, ...$replacements): void
     {
-      static::staticWriteLog(LoggerLevel::WARNING, $format, $replacements, true);
+      static::staticWriteLog('WARNING', $format, $replacements, true);
     }
     public static function warningf2(string $format, ...$replacements): void
     {
-      static::staticWriteLog(LoggerLevel::WARNING, $format, $replacements, false);
+      static::staticWriteLog('WARNING', $format, $replacements, false);
     }
     public static function noticef(string $format, ...$replacements): void
     {
-      static::staticWriteLog(LoggerLevel::NOTICE, $format, $replacements, true);
+      static::staticWriteLog('NOTICE', $format, $replacements, true);
     }
     public static function noticef2(string $format, ...$replacements): void
     {
-      static::staticWriteLog(LoggerLevel::NOTICE, $format, $replacements, false);
+      static::staticWriteLog('NOTICE', $format, $replacements, false);
     }
     public static function infof(string $format, ...$replacements): void
     {
-      static::staticWriteLog(LoggerLevel::INFO, $format, $replacements, true);
+      static::staticWriteLog('INFO', $format, $replacements, true);
     }
     public static function infof2(string $format, ...$replacements): void
     {
-      static::staticWriteLog(LoggerLevel::INFO, $format, $replacements, false);
+      static::staticWriteLog('INFO', $format, $replacements, false);
     }
     public static function debugf(string $format, ...$replacements): void
     {
-      static::staticWriteLog(LoggerLevel::DEBUG, $format, $replacements, true);
+      static::staticWriteLog('DEBUG', $format, $replacements, true);
     }
     public static function debugf2(string $format, ...$replacements): void
     {
-      static::staticWriteLog(LoggerLevel::DEBUG, $format, $replacements, false);
+      static::staticWriteLog('DEBUG', $format, $replacements, false);
     }
     public static function writef(string $level, string $format, ...$replacements): void
     {
