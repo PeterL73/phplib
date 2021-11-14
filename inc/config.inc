@@ -72,10 +72,10 @@ class Config extends Singleton
         $this->processValue($arg_map, $section, $key, $argv[$i]);
       } elseif(substr($argv[$i],0,1)=='-'){
         if(substr($argv[$i],-1,1)==':'){
-          $section=substr(substr($argv[$i],0,-1),1);
+          $section=strtolower(substr(substr($argv[$i],0,-1),1));
         }
         else {
-          $key=substr($argv[$i],1);
+          $key=strtolower(substr($argv[$i],1));
         }
       }
       else {
@@ -93,7 +93,7 @@ class Config extends Singleton
     }
     if(substr($value,0,1)=='-'){
       $arg_map[$section][$key]=1;
-      $key=substr($value,1);
+      $key=strtolower(substr($value,1));
     } else {
       $arg_map[$section][$key]=$value;
       $key=null;
@@ -102,7 +102,10 @@ class Config extends Singleton
 
   public function _get(string $key, $default, string $section) 
   {
+    $section=strtolower($section);
+    $key=strtolower($key);
     $value=$default;
+
     if(isset($this->map[$section][$key])){
       $value=$this->map[$section][$key];
     }
@@ -114,6 +117,9 @@ class Config extends Singleton
 
   public function _set(string $key, $value, string $section, bool $force): void
   {
+    $section=strtolower($section);
+    $key=strtolower($key);
+
     if($force || !isset($this->map[$section][$key])){
       $this->map[$section][$key]=$value;
     }
