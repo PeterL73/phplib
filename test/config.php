@@ -19,11 +19,11 @@ Config::softSet('F1','upper Soft');
 Config::dump();
 
 echo Config::get('s1','###').PHP_EOL;
-echo Config::get('s1','###', 'x').PHP_EOL;
+echo Config::get('x:s1','###').PHP_EOL;
 echo Config::get('ini',null).PHP_EOL;
 
 echo Config::get('S1','###').PHP_EOL;
-echo Config::get('S1','###', 'x').PHP_EOL;
+echo Config::get('x:S1','###').PHP_EOL;
 echo Config::get('ini',null).PHP_EOL;
 
 

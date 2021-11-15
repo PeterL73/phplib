@@ -5,6 +5,7 @@
 // file LICENSE or https://choosealicense.com/licenses/mit/
 
 require_once('singleton.inc');
+require_once('logger.inc');
 
 /**
  * Applying the Singleton pattern to the configuration storage is also a common
@@ -100,10 +101,19 @@ class Config extends Singleton
     }
   }
 
-  public function _get(string $key, $default, string $section) 
-  {
-    $section=strtolower($section);
+  public function _splitSectionKey(string &$section, string &$key){
+    $section='';
     $key=strtolower($key);
+    if(strpos($key, ':') !== false){
+      list($section,$key) = explode(':', $key);
+    }
+  }
+
+  public function _get(string $key, $default) 
+  {
+    $section='';
+    $this->_splitSectionKey($section, $key);
+
     $value=$default;
 
     if(isset($this->map[$section][$key])){
@@ -115,9 +125,11 @@ class Config extends Singleton
     return $value;
   }
 
-  public function _set(string $key, $value, string $section, bool $force): void
+  public function _set(string $key, $value, bool $force): void
   {
-    $section=strtolower($section);
+    $section='';
+    $this->_splitSectionKey($section, $key);
+
     $key=strtolower($key);
 
     if($force || !isset($this->map[$section][$key])){
@@ -125,9 +137,9 @@ class Config extends Singleton
     }
   }
 
-  public function _isSet(string $key, string $section): bool
+  public function _isSet(string $key): bool
   {
-    return (bool)$this->_get($key,0,$section);
+    return (bool)$this->_get($key,0);
   }
 
   public function _getParams(): array
@@ -146,21 +158,32 @@ class Config extends Singleton
     print_r($this->params);
   }
 
-  public static function get(string $key, $default, string $section=''){
-    $config = static::getInstance();
-    return $config->_get($key, $default, $section);
+  public static function testArgCount($allow, $num){
+    if($num>$allow){
+      echo 'DEPRECATED use section:key'.PHP_EOL;
+      Logger::errorf('Using DEPRECATED Config implementation. Use "section:key" instead.');
+      exit;
+    }
   }
-  public static function softSet(string $key, $value, string $section=''){
+  public static function get(string $key, $default){
+    static::testArgCount(2, func_num_args());
     $config = static::getInstance();
-    $config->_set($key, $value, $section, false);
+    return $config->_get($key, $default);
   }
-  public static function forceSet(string $key, $value, string $section=''){
+  public static function softSet(string $key, $value){
+    static::testArgCount(2, func_num_args());
     $config = static::getInstance();
-    $config->_set($key, $value, $section, true);
+    $config->_set($key, $value, false);
   }
-  public static function isSet(string $key, string $section=''){
+  public static function forceSet(string $key, $value){
+    static::testArgCount(2, func_num_args());
     $config = static::getInstance();
-    return $config->_isSet($key, $section);
+    $config->_set($key, $value, true);
+  }
+  public static function isSet(string $key){
+    static::testArgCount(1, func_num_args());
+    $config = static::getInstance();
+    return $config->_isSet($key);
   }
   public static function getParams(): array
   {

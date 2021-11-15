@@ -16,7 +16,7 @@ class Client extends Singleton
 
   protected function _callNamed(string $name, string $command, string $params){
     Logger::debugf('%s: %s %s', $name, $command, $params);
-    $cmd=Config::get('cmd', null, $name);
+    $cmd=Config::get($name.':cmd', null);
     if(empty($cmd)){
       Logger::errorf('client command not set');
       return null;
@@ -55,6 +55,6 @@ function client($config,$command,$params=null){
   if(is_null($params)){
     $params='';
   }
-  Config::forceSet('cmd', $config['client'], $config['client']);
+  Config::forceSet($config['client'].':cmd', $config['client']);
   return Client::callNamed($config['client'], $command, $params);
 }

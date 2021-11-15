@@ -65,23 +65,23 @@ class Logger extends Singleton
      */
     protected function __construct()
     { 
-      $this->label = Config::get('label', false, 'logger');
-      $this->tofile = Config::get('tofile', false, 'logger');
+      $this->label = Config::get('logger:label', false);
+      $this->tofile = Config::get('logger:tofile', false);
       if($this->tofile){
-        Config::softSet('toscreen', false, 'logger');
+        Config::softSet('logger:toscreen', false);
         $script=pathinfo(get_included_files()[0]);
         $filename=$script['filename'].'.log';
-        Config::softSet('filename', $script['dirname'].'/'.$filename, 'logger');
+        Config::softSet('logger:filename', $script['dirname'].'/'.$filename);
       }
-      $this->toscreen = Config::get('toscreen', true, 'logger');
-      $this->filename = Config::get('filename', null, 'logger');
+      $this->toscreen = Config::get('logger:toscreen', true);
+      $this->filename = Config::get('logger:filename', null);
       if($this->tofile){
         $this->fileHandle = fopen($this->filename, 'a');
       }
       if($this->toscreen){
         $this->screenHandle = fopen('php://stdout', 'a');
       }
-      $this->_setLevel(Config::get('level', 'DEBUG', 'logger'));
+      $this->_setLevel(Config::get('logger:level', 'DEBUG'));
     }
 
     public function write($string){
@@ -99,7 +99,7 @@ class Logger extends Singleton
     {
       static $first=null;
       if(is_null($first)){
-        $first=Config::get('markfirst',true, 'logger');
+        $first=Config::get('logger:markfirst',true);
       }
 
       if(!isset(self::LEVEL[$level]['prio'])){
