@@ -9,11 +9,12 @@ require_once('config.inc');
 
 /* config options
  * [logger]
- * level   = DEBUG
- * label   = false
- * toscreen= true (false when not set and tofile set)
- * tofile  = false
- * filename= <scriptname>.log
+ * level     = DEBUG
+ * label     = false
+ * toscreen  = true (false when not set and tofile set)
+ * tofile    = false
+ * filename  = <scriptname>.log
+ * markfirst = true
  */
 /**
  * The logging class is the most known and praised use of the Singleton pattern.
@@ -96,6 +97,11 @@ class Logger extends Singleton
      */
     public function _writeLog(string $level, string $format, $replacements, $prefix=true): void
     {
+      static $first=null;
+      if(is_null($first)){
+        $first=Config::get('markfirst',true, 'logger');
+      }
+
       if(!isset(self::LEVEL[$level]['prio'])){
         $this->_writeLog('ERROR', 'Invalid level [%s]', $level);
         return;
@@ -103,12 +109,20 @@ class Logger extends Singleton
       if(self::LEVEL[$level]['prio'] > self::LEVEL[$this->level]['prio']) {
         return;
       }
+      if($first){
+        $this->write("\x1B[53m");
+      }
       if($prefix){
-        $this->write(gmdate("[Y-m-d H:i:s] "));
+        $this->write(gmdate("[Y-m-d H:i:s]"));
       }
       else {
-        $this->write(str_pad('',22));
+        $this->write(str_pad('',21));
       }  
+      if($first){
+        $this->write("\x1B[0m");
+      }
+      $this->write(' ');
+      $first=false;
       $this->write(self::LEVEL[$level]['color']);
       if($prefix && $this->label){
         $this->write(self::LEVEL[$level]['label']. ': ' );
