@@ -15,6 +15,7 @@ require_once('config.inc');
  * tofile    = false
  * filename  = <scriptname>.log
  * markfirst = true
+ * utc       = true
  */
 /**
  * The logging class is the most known and praised use of the Singleton pattern.
@@ -113,7 +114,12 @@ class Logger extends Singleton
         $this->write("\x1B[53m");
       }
       if($prefix){
-        $this->write(gmdate("[Y-m-d H:i:s]"));
+        if(Config::get('logger:utc', true)){
+          $this->write(gmdate("[Y-m-d H:i:s]"));
+        }
+        else {
+          $this->write(date("[Y-m-d H:i:s]"));
+        }
       }
       else {
         $this->write(str_pad('',21));
