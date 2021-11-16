@@ -70,12 +70,18 @@ class Logger extends Singleton
       $this->tofile = Config::get('logger:tofile', false);
       if($this->tofile){
         Config::softSet('logger:toscreen', false);
-        $script=pathinfo(get_included_files()[0]);
-        $filename=$script['filename'].'.log';
-        Config::softSet('logger:filename', $script['dirname'].'/'.$filename);
       }
       $this->toscreen = Config::get('logger:toscreen', true);
-      $this->filename = Config::get('logger:filename', null);
+
+      $script=pathinfo(get_included_files()[0]);
+      $this->filename = Config::get('logger:filename', $script['filename'].'.log');
+      if(strtolower(substr($this->filename,-4)) != '.log'){
+        $this->filename.='.log';
+      }
+      if(substr($this->filename,0,1)!='/'){
+        $this->filename = $script['dirname'].'/'.$this->filename;
+      }
+
       if($this->tofile){
         $this->fileHandle = fopen($this->filename, 'a');
       }
