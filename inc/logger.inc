@@ -115,14 +115,17 @@ class Logger extends Singleton
       }
       if($prefix){
         if(Config::get('logger:utc', true)){
-          $this->write(gmdate("[Y-m-d H:i:s]"));
-        }
-        else {
-          $this->write(date("[Y-m-d H:i:s]"));
+          $this->write(gmdate("Y-m-d\TH:i:s\Z"));
+        } else {
+          $this->write(  date("[Y-m-d H:i:s]"));
         }
       }
       else {
-        $this->write(str_pad('',21));
+        if(Config::get('logger:utc', true)){
+          $this->write(str_pad('',20));
+        } else {
+          $this->write(str_pad('',21));
+        }
       }  
       if($first){
         $this->write("\x1B[0m");
