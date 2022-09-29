@@ -41,10 +41,12 @@ class Logger extends Singleton
     'WARNING' => ['prio' => 2, 'label' => 'WARNING', 'color' => self::COLOR['YELLOW']],
     'NOTICE' => ['prio' => 3, 'label' => 'NOTICE',  'color' => self::COLOR['CYAN']],
     'INFO' => ['prio' => 4, 'label' => 'INFO',    'color' => self::COLOR['DEFAULT']],
-    'DEBUG' => ['prio' => 5, 'label' => 'DEBUG',   'color' => self::COLOR['GREY']]
+    'DEBUG' => ['prio' => 5, 'label' => 'DEBUG',   'color' => self::COLOR['GREY']],
+    'VERBOSE' => ['prio' => 6, 'label' => 'VERBOSE',   'color' => self::COLOR['GREY']]
   ];
 
   private $level='DEBUG';
+  private $sublevel=0;
   private $label;
   private $toscreen;
   private $tofile;
@@ -65,7 +67,7 @@ class Logger extends Singleton
      * the actual file here.
      */
     protected function __construct()
-    { 
+    {
       $this->label = Config::get('logger:label', false);
       $this->tofile = Config::get('logger:tofile', false);
       if($this->tofile){
@@ -102,8 +104,12 @@ class Logger extends Singleton
     /**
      * Write a log entry to the opened file resource.
      */
-    public function _writeLog(string $level, string $format, $replacements, $prefix=true): void
+    public function _writeLog(string $levelname, string $format, $replacements, $prefix=true): void
     {
+      $level='';
+      $sublevel=0;
+      $this->splitLevel($levelname, $level, $sublevel);
+
       static $first=null;
       if(is_null($first)){
         $first=Config::get('logger:markfirst',true);
@@ -113,7 +119,7 @@ class Logger extends Singleton
         $this->_writeLog('ERROR', 'Invalid level [%s]', $level);
         return;
       }
-      if(self::LEVEL[$level]['prio'] > self::LEVEL[$this->level]['prio']) {
+      if(self::LEVEL[$level]['prio'] + $sublevel > self::LEVEL[$this->level]['prio'] + $this->sublevel) {
         return;
       }
       if($first){
@@ -159,11 +165,30 @@ class Logger extends Singleton
     public function _setLevel(string $value)
     {
       $value=strtoupper($value);
-      if(!isset($this::LEVEL[$value]['prio'])){
+      $level='';
+      $sublevel=0;
+
+      $this->splitLevel($value, $level, $sublevel);
+
+      if(!isset($this::LEVEL[$level]['prio'])){
         $this->_writeLog('ERROR', 'Invalid level [%s] set', $value);
         return;
       }
-      $this->level = $value;
+      $this->level = $level;
+      $this->sublevel = $sublevel;
+    }
+
+    private function splitLevel(string $value, string &$level, int &$sublevel){
+      $level=null;
+      $sublevel=0;
+
+      $parts=explode('#',$value);
+      if(isset($parts[0])){
+        $level=$parts[0];
+      }
+      if(isset($parts[1])){
+        $sublevel=intval($parts[1]);
+      }
     }
 
     public static function setLevel(string $value){
@@ -224,6 +249,14 @@ class Logger extends Singleton
     public static function debugf2(string $format, ...$replacements): void
     {
       static::staticWriteLog('DEBUG', $format, $replacements, false);
+    }
+    public static function verbosef(int $sublevel, string $format, ...$replacements): void
+    {
+      static::staticWriteLog('VERBOSE#'.$sublevel, $format, $replacements, true);
+    }
+    public static function verbosef2(int $level, string $format, ...$replacements): void
+    {
+      static::staticWriteLog('VERBOSE#'.$sublevel, $format, $replacements, false);
     }
     public static function writef(string $level, string $format, ...$replacements): void
     {
