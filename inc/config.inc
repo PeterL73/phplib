@@ -185,6 +185,14 @@ class Config extends Singleton
     $config = static::getInstance();
     return $config->_isSet($key);
   }
+  public static function param($index)
+  {
+    $params = static::getParams();
+    if(isset($params[$index])){
+      return $params[$index];
+    }
+    return null;
+  }
   public static function getParams(): array
   {
     $config = static::getInstance();

@@ -26,4 +26,8 @@ echo Config::get('S1','###').PHP_EOL;
 echo Config::get('x:S1','###').PHP_EOL;
 echo Config::get('ini',null).PHP_EOL;
 
-
+echo 'getParams'.PHP_EOL;
+print_r(Config::getParams());
+echo 'param[0]: "'.Config::param(0).'"'.PHP_EOL;
+echo 'param[1]: "'.Config::param(1).'"'.PHP_EOL;
+echo 'param[2]: "'.Config::param(2).'"'.PHP_EOL;
